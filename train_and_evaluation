@@ -81,24 +81,25 @@ model.compile(optimizer=optimizer,
               metrics=['accuracy'])
 
 #### If you want to train PCRNN model, uncomment the following line and commonet the line after that.
-# model.fit([ftr_train, ftr_train], y_train,epochs=50,batch_size=512,
-#           validation_data=([ftr_val,ftr_val], y_val))
+for run_index in range(10):
+    # model.fit([ftr_train, ftr_train], y_train,epochs=50,batch_size=512,
+    #           validation_data=([ftr_val,ftr_val], y_val))
 
-model.fit(ftr_train, y_train,epochs=75,batch_size=300)
+    model.fit(ftr_train, y_train,epochs=75,batch_size=300)
 
-#### If you want to train PCRNN model, uncomment the following line and commonet the line after that.
+    #### If you want to train PCRNN model, uncomment the following line and commonet the line after that.
 
-#model.evaluate([ftr_test,ftr_test],y_test)
-#y_pred=model.predict([ftr_test,ftr_test],batch_size=512)
-model.evaluate(x=ftr_test,y=y_test)
-y_pred=model.predict(ftr_test,batch_size=512)
+    #model.evaluate([ftr_test,ftr_test],y_test)
+    #y_pred=model.predict([ftr_test,ftr_test],batch_size=512)
+    model.evaluate(x=ftr_test,y=y_test)
+    y_pred=model.predict(ftr_test,batch_size=512)
 
-##
-y_pred = np.argmax(y_pred, axis=1)
-y_true = np.argmax(y_test, axis=1)
-cm=confusion_matrix(y_true, y_pred)
-acc=(cm[0,0]+cm[1,1])/(cm[0,0]+cm[0,1]+cm[1,0]+cm[1,1])
-sen=(cm[1,1])/(cm[1,0]+cm[1,1])
-spe=(cm[0,0])/(cm[0,0]+cm[0,1])
+    ##
+    y_pred = np.argmax(y_pred, axis=1)
+    y_true = np.argmax(y_test, axis=1)
+    cm=confusion_matrix(y_true, y_pred)
+    acc=(cm[0,0]+cm[1,1])/(cm[0,0]+cm[0,1]+cm[1,0]+cm[1,1])
+    sen=(cm[1,1])/(cm[1,0]+cm[1,1])
+    spe=(cm[0,0])/(cm[0,0]+cm[0,1])
 
-print("acc:", acc, "\nSen:", sen, "\nspe:", spe)
+    print("acc:", acc, "\nSen:", sen, "\nspe:", spe)
