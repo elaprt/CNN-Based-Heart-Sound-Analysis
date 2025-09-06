@@ -1,0 +1,119 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Nov 23 17:31:45 2022
+
+@author: Elaheh
+"""
+from keras import Sequential
+from keras.layers import Dense, Flatten,Conv2D, MaxPooling2D, BatchNormalization, LSTM, Dropout, Reshape, GRU, concatenate
+from keras.models import Model
+import librosa
+from librosa import feature
+from scipy import signal
+import numpy as np
+  
+class modelll():
+    
+    def ftr_extrct(new_data, sig_dur, num_MFCC, ovrlp_len, NFFT,Fs):
+        sample1 = librosa.effects.preemphasis(new_data, coef=0.97)
+        Mel_spctrgram = feature.melspectrogram( y=sample1, sr=Fs, S=None, n_fft=NFFT,
+                        hop_length=ovrlp_len,
+                        window=signal.windows.hamming(NFFT),
+                        center=False, power=2.0,
+                        n_mels=26,htk=True, norm=None, dtype='float32'  )
+
+        S1 = librosa.power_to_db(Mel_spctrgram)
+        ftr = feature.mfcc(y=None, sr = Fs, S=S1, n_mfcc= num_MFCC)
+        feature_delta = feature.delta(ftr, width=5, axis=0, order=1)
+        feature_delta2 = feature.delta(ftr, width=5, axis=0, order=2)
+        feature_total = np.concatenate((ftr, feature_delta, feature_delta2), axis=1)
+        return feature_total
+    
+
+    
+    def CRNN(feature_dim_1,feature_dim_2,channel):
+        model = Sequential() 
+        model.add(Conv2D(16, kernel_size=(3, 3), activation='relu',
+                         input_shape=(feature_dim_1,feature_dim_2,channel)))
+        model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
+        model.add(BatchNormalization())
+        # model.add(Dropout(0.5))
+        model.add(Conv2D(32, kernel_size=(3, 3), activation='relu'))
+        model.add(MaxPooling2D(pool_size=(4, 4),strides=(4, 4)))
+        model.add(BatchNormalization())
+        # model.add(Dropout(0.5))
+        model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
+        model.add((BatchNormalization()))
+        # model.add(Dropout(0.5))
+        model.add((Flatten()))
+        out_shape = model.layers[-1].output_shape[1]
+        model.add(Reshape((out_shape,1),input_shape=(out_shape ,)))
+        model.add(LSTM(64,activation='tanh',recurrent_activation='sigmoid',return_sequences='True'))
+        model.add(Flatten())   
+        model.add(Dense(32, activation='relu'))
+        # model.add(BatchNormalization())
+        model.add(Dropout(0.5))
+            
+        model.add(Dense(2, activation='softmax'))
+            
+        return model
+    
+        
+    def CNN(feature_dim_1,feature_dim_2,channel):
+        model = Sequential() 
+        model.add(Conv2D(16, kernel_size=(3, 3), activation='relu',
+                         input_shape=(feature_dim_1,feature_dim_2,channel)))
+        model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
+        model.add(BatchNormalization())
+        # model.add(Dropout(0.5))
+        model.add(Conv2D(32, kernel_size=(3, 3), activation='relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
+        model.add(BatchNormalization())
+        # model.add(Dropout(0.5))
+        model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
+        model.add((BatchNormalization()))
+        # model.add(Dropout(0.5))
+        model.add((Flatten()))
+        model.add(Dense(32, activation='relu'))
+        # model.add(BatchNormalization())
+        model.add(Dropout(0.5))
+        
+        model.add(Dense(2, activation='softmax'))
+        
+        return model
+    
+    def PCRNN(feature_dim_1,feature_dim_2,channel):
+          
+        model2 = Sequential() 
+        model2.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2),
+                                input_shape=(feature_dim_1,feature_dim_2,channel)))
+        model2.add((BatchNormalization()))
+        model2.add((Flatten()))
+        out_shape = model2.layers[-1].output_shape[1]
+        model2.add(Reshape((out_shape,1),input_shape=(out_shape ,)))
+        model2.add(LSTM(64,activation='tanh',recurrent_activation='sigmoid',return_sequences='True'))
+        model2.add(Flatten()) 
+        
+        model1 = Sequential() 
+        model1.add(Conv2D(16, kernel_size=(3, 3), activation='relu',
+                         input_shape=(feature_dim_1,feature_dim_2,channel)))
+        model1.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
+        model1.add(BatchNormalization())
+        model1.add(Conv2D(32, kernel_size=(3, 3), activation='relu'))
+        model1.add(MaxPooling2D(pool_size=(4, 4),strides=(4, 4)))
+        model1.add(BatchNormalization())
+        model1.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+        model1.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
+        model1.add((BatchNormalization()))
+        model1.add((Flatten()))
+        
+        model_concat = concatenate([model1.output, model2.output], axis=-1)
+        model_concat = Flatten()(model_concat)
+        model_concat = Dense(32, activation='relu')(model_concat)
+        model_concat = Dropout(0.5)(model_concat)
+        model_concat = Dense(2, activation='softmax')(model_concat)
+        model = Model(inputs=[model1.input, model2.input], outputs=model_concat)
+        
+        return model
