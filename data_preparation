@@ -1,0 +1,81 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May 10 18:37:47 2022
+
+@author: Elaheh
+"""
+import numpy as np
+from sklearn.model_selection import train_test_split
+from os.path import dirname, join as pjoin
+import csv
+from scipy.io import wavfile
+import math
+from scipy import signal
+
+sos = signal.butter(5, (25,400) , 'bandpass', fs=2000, output='sos')
+def crop_to_5s(data_dir,filename):
+    X=np.zeros((1,10000))
+    y=[]
+    with open(pjoin(data_dir,filename), newline='') as csvfile:
+        csv_reader  = csv.reader(csvfile)
+        for row in csv_reader:
+            # print(row[0],row[1])
+            # X=np.concatenate((X,[row[0]]),axis=0)
+            # y=np.concatenate((y,[row[1]]),axis=0)
+            wav_fname = pjoin(data_dir, f"{row[0]}.wav")
+            Fs, samples = wavfile.read(wav_fname)
+            samples = samples - np.mean(samples)
+            samples /= np.max(np.abs(samples), axis=0)  # Normalize sample
+
+            filtered = signal.sosfilt(sos, samples)
+            filtered = filtered.astype('float32')
+            length = filtered.shape[0]/Fs
+            for num_of_5s_sig in range(int(math.floor(length/5))):
+        
+                samples_5s = filtered[(num_of_5s_sig)*(5*Fs):
+                              num_of_5s_sig*(5*Fs)+(5*Fs)]
+                samples_5s = samples_5s.reshape(1,-1)
+                X=np.concatenate((X,samples_5s),axis=0)
+                y=np.concatenate((y,[row[1]]),axis=0)
+
+    X=X[1:,:]
+    Z= y.reshape(-1,1)
+    Zt = list(zip(Z, X))
+    # Zt=np.column_stack((Z,X))
+    return Zt
+path = 'C:/Users/Elaheh/Desktop/Databases/PhysioNet2016/training/'
+data_dir = pjoin(dirname(path),'training-a')
+Zta=crop_to_5s(data_dir,'REFERENCE.csv')
+data_dir = pjoin(dirname(path),'training-b')
+Ztb=crop_to_5s(data_dir,'REFERENCE.csv')
+data_dir = pjoin(dirname(path),'training-c')
+Ztc=crop_to_5s(data_dir,'REFERENCE.csv')
+data_dir = pjoin(dirname(path),'training-d')
+Ztd=crop_to_5s(data_dir,'REFERENCE.csv')
+data_dir = pjoin(dirname(path),'training-e')
+Zte=crop_to_5s(data_dir,'REFERENCE.csv')
+data_dir = pjoin(dirname(path),'training-f')
+Ztf=crop_to_5s(data_dir,'REFERENCE.csv')
+Zt=Zta+Ztb+Ztc+Ztd+Zte+Ztf
+
+X_train, X_testval = train_test_split(Zt, test_size= 0.25, shuffle=True)
+X_test, X_val = train_test_split(X_testval, test_size= 0.6,shuffle=True)
+
+
+file = 'C:/Users/Elaheh/.spyder-py3/X_val.npy'
+f = open(file, "wb")
+np.save(f,X_val)
+
+file = 'C:/Users/Elaheh/.spyder-py3/y_val.npy'
+f = open(file, "wb")
+np.save(f,y_val)
+
+
+file = 'C:/Users/Elaheh/.spyder-py3/X_test.npy'
+f = open(file, "wb")
+np.save(f,X_test)
+
+file = 'C:/Users/Elaheh/.spyder-py3/y_test.npy'
+f = open(file, "wb")
+np.save(f,y_test)
+
