@@ -1,0 +1,104 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Nov 23 17:10:10 2022
+
+@author: Elaheh
+"""
+
+from sklearn.model_selection import KFold
+# from sklearn.metrics import f1_score
+import keras
+import tensorflow as tf
+from sklearn.metrics import confusion_matrix, accuracy_score
+# import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+# from sklearn.model_selection import train_test_split, StratifiedKFold
+# from imblearn.over_sampling import KMeansSMOTE
+# from os.path import dirname, join as pjoin
+# import csv
+# from scipy.io import wavfile
+# import math
+# from scipy import signal
+from modelll import modelll
+from keras import optimizers
+
+X_train= np.load('C:/Users/Mohammad/.spyder-py3/data_train_b.npy')
+y_train1=np.load('C:/Users/Mohammad/.spyder-py3/label_train_b.npy')
+
+
+X_test= np.load('C:/Users/Mohammad/.spyder-py3/data_train_c.npy')
+y_test1=np.load('C:/Users/Mohammad/.spyder-py3/label_train_c.npy')
+
+
+a=X_train[:,1].size
+b = X_test[:,1].size
+
+y_train=np.zeros((a,1))
+for i in range(a):
+    if y_train1[i]=='-1':
+        y_train[i]=0
+    else:
+        y_train[i]=1
+y_train = y_train.flatten()
+y_train = tf.one_hot(y_train, depth=2,on_value=1.0, off_value=0.0)
+y_train=y_train.numpy()
+
+y_test=np.zeros((b,1))
+for i in range(b):
+    if y_test1[i]=='-1':
+        y_test[i]=0
+    else:
+        y_test[i]=1
+y_test = y_test.flatten()
+y_test = tf.one_hot(y_test, depth=2,on_value=1.0, off_value=0.0)
+y_test=y_test.numpy()
+
+sig_dur, num_MFCC, ovrlp_len, NFFT,Fs = 5, 13, 128, 512 ,2000
+ftr_train= modelll.ftr_extrct(X_train, sig_dur, num_MFCC, ovrlp_len, NFFT, Fs)
+feature_dim_1= ftr_train[1,:,1].size
+feature_dim_2= ftr_train[1,1,:].size
+channel=1
+ftr_train = ftr_train.reshape(ftr_train.shape[0], feature_dim_1, feature_dim_2, channel)
+
+
+ftr_test= modelll.ftr_extrct(X_test, sig_dur, num_MFCC, ovrlp_len, NFFT, Fs)
+feature_dim_1= ftr_test[1,:,1].size
+feature_dim_2= ftr_test[1,1,:].size
+channel=1
+ftr_test = ftr_test.reshape(ftr_test.shape[0], feature_dim_1, feature_dim_2, channel)
+
+optimizer = optimizers.Adam(learning_rate=0.01,
+    beta_1=0.9,
+    beta_2=0.999,
+    epsilon=1e-08,
+    amsgrad=False,
+    name="Adam")
+
+model = modelll.CNN(feature_dim_1=feature_dim_1, feature_dim_2=feature_dim_2, channel=1) # Choose a model here
+model.compile(optimizer=optimizer,
+              loss=keras.losses.categorical_crossentropy,
+              metrics=['accuracy'])
+
+#### If you want to train PCRNN model, uncomment the following line and commonet the line after that.
+# model.fit([ftr_train, ftr_train], y_train,epochs=50,batch_size=512,
+#           validation_data=([ftr_val,ftr_val], y_val))
+
+model.fit(ftr_train, y_train,epochs=75,batch_size=300)
+
+#### If you want to train PCRNN model, uncomment the following line and commonet the line after that.
+
+#model.evaluate([ftr_test,ftr_test],y_test)
+#y_pred=model.predict([ftr_test,ftr_test],batch_size=512)
+model.evaluate(x=ftr_test,y=y_test)
+y_pred=model.predict(ftr_test,batch_size=512)
+
+##
+y_pred = np.argmax(y_pred, axis=1)
+y_true = np.argmax(y_test, axis=1)
+cm=confusion_matrix(y_true, y_pred)
+acc=(cm[0,0]+cm[1,1])/(cm[0,0]+cm[0,1]+cm[1,0]+cm[1,1])
+sen=(cm[1,1])/(cm[1,0]+cm[1,1])
+spe=(cm[0,0])/(cm[0,0]+cm[0,1])
+
+print("acc:", acc, "\nSen:", sen, "\nspe:", spe)
