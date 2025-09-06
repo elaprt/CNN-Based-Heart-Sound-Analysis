@@ -23,17 +23,16 @@ import numpy as np
 from modelll import modelll
 from keras import optimizers
 
-X_train= np.load('C:/Users/Mohammad/.spyder-py3/data_train_b.npy')
-y_train1=np.load('C:/Users/Mohammad/.spyder-py3/label_train_b.npy')
+X_train= np.load('C:/Users/Elaheh/.spyder-py3/X_train.npy')
+y_train1=np.load('C:/Users/Elaheh/.spyder-py3/y_train.npy')
+X_val= np.load('C:/Users/Elaheh/.spyder-py3/X_val.npy')
+y_val1=np.load('C:/Users/Elaheh/.spyder-py3/y_val.npy')
+X_test= np.load('C:/Users/Elaheh/.spyder-py3/X_test.npy')
+y_test1=np.load('C:/Users/Elaheh/.spyder-py3/y_test.npy')
 
-
-X_test= np.load('C:/Users/Mohammad/.spyder-py3/data_train_c.npy')
-y_test1=np.load('C:/Users/Mohammad/.spyder-py3/label_train_c.npy')
-
-
-a=X_train[:,1].size
-b = X_test[:,1].size
-
+a=ftr_train[:,1,1].size
+b=ftr_val[:,1,1].size
+c=ftr_test[:,1,1].size
 y_train=np.zeros((a,1))
 for i in range(a):
     if y_train1[i]=='-1':
@@ -44,8 +43,18 @@ y_train = y_train.flatten()
 y_train = tf.one_hot(y_train, depth=2,on_value=1.0, off_value=0.0)
 y_train=y_train.numpy()
 
-y_test=np.zeros((b,1))
+y_val=np.zeros((b,1))
 for i in range(b):
+    if y_val1[i]=='-1':
+        y_val[i]=0
+    else:
+        y_val[i]=1
+y_val = y_val.flatten()
+y_val = tf.one_hot(y_val, depth=2,on_value=1.0, off_value=0.0)
+y_val=y_val.numpy()
+
+y_test=np.zeros((c,1))
+for i in range(c):
     if y_test1[i]=='-1':
         y_test[i]=0
     else:
@@ -56,16 +65,13 @@ y_test=y_test.numpy()
 
 sig_dur, num_MFCC, ovrlp_len, NFFT,Fs = 5, 13, 128, 512 ,2000
 ftr_train= modelll.ftr_extrct(X_train, sig_dur, num_MFCC, ovrlp_len, NFFT, Fs)
+ftr_val= modelll.ftr_extrct(X_val, sig_dur, num_MFCC, ovrlp_len, NFFT, Fs)
+ftr_test= modelll.ftr_extrct(X_test, sig_dur, num_MFCC, ovrlp_len, NFFT, Fs)
 feature_dim_1= ftr_train[1,:,1].size
 feature_dim_2= ftr_train[1,1,:].size
 channel=1
 ftr_train = ftr_train.reshape(ftr_train.shape[0], feature_dim_1, feature_dim_2, channel)
-
-
-ftr_test= modelll.ftr_extrct(X_test, sig_dur, num_MFCC, ovrlp_len, NFFT, Fs)
-feature_dim_1= ftr_test[1,:,1].size
-feature_dim_2= ftr_test[1,1,:].size
-channel=1
+ftr_val = ftr_val.reshape(ftr_val.shape[0], feature_dim_1, feature_dim_2, channel)
 ftr_test = ftr_test.reshape(ftr_test.shape[0], feature_dim_1, feature_dim_2, channel)
 
 optimizer = optimizers.Adam(learning_rate=0.01,
